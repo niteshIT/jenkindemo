@@ -10,7 +10,8 @@ pipeline {
         stage('Checkout') {
             steps {
                 // Checkout the code from Git
-                git 'https://github.com/niteshIT/jenkindemo.git'
+                //git 'https://github.com/niteshIT/jenkindemo.git'
+                checkout scm
             }
         }    
         stage("Build"){
