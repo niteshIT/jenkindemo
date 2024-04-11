@@ -1,0 +1,80 @@
+
+pipeline {
+    agent any
+    environment {
+        IMAGE_NAME = 'nitesh4321kr/jenkindocker'
+        // Using Jenkins build number as the tag
+        IMAGE_TAG = "${BUILD_NUMBER}"
+    }
+    stages {
+        stage('Checkout') {
+            steps {
+                // Checkout the code from Git
+                git 'https://github.com/niteshIT/jenkindemo.git'
+            }
+        }    
+        stage("Build"){
+            steps{
+                // Build the solution
+                sh 'dotnet build jenkindemo.sln --configuration Release'
+            }
+        }
+        stage('Test') {
+            steps {
+                // Run tests
+                sh 'dotnet test jenkindemo.sln --logger "trx;LogFileName=aspnetapp.trx"'
+            }
+        } 
+        
+        
+        // stage('Build + SonarQube analysis') {
+        //     steps {
+        //         withSonarQubeEnv('sonarqube10.4.1') {
+        //             // sh "sonar-scanner begin /k:myKey" // Assuming sonar-scanner is in PATH
+        //             // sh 'dotnet build' // Use 'dotnet build' instead of 'MSBuild.exe /t:Rebuild' for .NET projects
+        //             // sh "sonar-scanner end" // Again, assuming sonar-scanner is in PATH
+        //             sh "${sqScannerMsBuildHome}\\SonarQube.Scanner.MSBuild.exe begin /k:sonarqube-dotnetapp"
+        //             sh 'MSBuild.exe /t:Rebuild'
+        //             sh "${sqScannerMsBuildHome}\\SonarQube.Scanner.MSBuild.exe end"
+        //         }  
+        //     }
+        // }
+        stage("Docker Build") {
+            steps {
+                // Build Docker image
+                script {
+                    docker.build("${IMAGE_NAME}:${IMAGE_TAG}", "-f jenkindemo/Dockerfile .")
+                }
+            }
+        }
+        stage('Docker Push') {
+            steps {
+                script {
+                    // Push Docker image
+                    withDockerRegistry(credentialsId: 'dockerhub') {
+                        sh "docker push ${IMAGE_NAME}:${IMAGE_TAG}"
+                    }
+                }
+            }
+        }
+        stage('Run Container') {
+            steps {
+                script {
+                    // Pull Docker image
+                    sh "docker pull ${IMAGE_NAME}:${IMAGE_TAG}"
+                    
+                    // Check if container exists, if so restart it, else run a new container
+                    // if (sh(script: "docker ps -a --filter name=my_container --format '{{.Names}}'", returnStatus: true) == 0) {
+                    //     sh "docker restart my_container"
+                    // } else {
+                    //     sh "docker run -d -p 8000:80 --name my_container ${IMAGE_NAME}:${IMAGE_TAG}"
+                    // }
+                    sh "docker stop my_container"
+                    sh "docker rm my_container"
+                    sh "docker run -d -p 8000:80 --name my_container ${IMAGE_NAME}:${IMAGE_TAG}"
+                    
+                }
+            }
+        }
+    } 
+}
