@@ -28,18 +28,16 @@ pipeline {
         } 
         
         
-        // stage('Build + SonarQube analysis') {
-        //     steps {
-        //         withSonarQubeEnv('sonarqube10.4.1') {
-        //             // sh "sonar-scanner begin /k:myKey" // Assuming sonar-scanner is in PATH
-        //             // sh 'dotnet build' // Use 'dotnet build' instead of 'MSBuild.exe /t:Rebuild' for .NET projects
-        //             // sh "sonar-scanner end" // Again, assuming sonar-scanner is in PATH
-        //             sh "${sqScannerMsBuildHome}\\SonarQube.Scanner.MSBuild.exe begin /k:sonarqube-dotnetapp"
-        //             sh 'MSBuild.exe /t:Rebuild'
-        //             sh "${sqScannerMsBuildHome}\\SonarQube.Scanner.MSBuild.exe end"
-        //         }  
-        //     }
-        // }
+            stage('SonarQube analysis') {
+                def scannerHome = tool 'SonarScanner for MSBuild'
+                 steps {
+                     withSonarQubeEnv('sonarqube10.4.1') {
+                      sh "dotnet ${scannerHome}/SonarScanner.MSBuild.dll begin /k:\"dotnetapp-devops\""
+                      sh "dotnet build"
+                      sh "dotnet ${scannerHome}/SonarScanner.MSBuild.dll end"
+                }  
+            }
+         }
         stage("Docker Build") {
             steps {
                 // Build Docker image
